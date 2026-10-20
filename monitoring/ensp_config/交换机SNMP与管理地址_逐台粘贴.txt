@@ -1,0 +1,530 @@
+# ============================================================
+# 二层交换机 SNMP + 管理地址 逐台粘贴脚本
+# ------------------------------------------------------------
+# 背景：所有 S5700 的 flash.efz 为空（从未 save），无法直接写文件，
+#       必须在 eNSP 运行时逐台打开 CLI 粘贴，最后 save。
+#
+# 统一规划：
+#   管理 VLAN = 88，VLANIF88 落在 192.168.88.0/24
+#   与防火墙 GE0/0/0 带外管理口同网段，监控主机（经 Cloud 接入）直达
+#   community = Monitor@123（与 exporter/devices.yaml 一致）
+#
+# 注意：
+#   1) 每台交换机的【上联口】要放行 VLAN 88（脚本中默认 GE0/0/1，
+#      请按实际接线改成真正的上联口！）
+#   2) 监控主机若不在 192.168.88.0/24 网段，才需要脚本中的默认路由
+#   3) 粘贴完务必 save，否则重启丢失
+#   4) 每台末尾的 trap target-host 指向监控主机（默认 192.168.88.10，
+#      请按实际监控主机在 eNSP Cloud 中的 IP 修改）
+# ============================================================
+
+
+# ==================== 总部 · 核心 ====================
+# ---- CORE1 ----
+system-view
+sysname CORE1
+vlan 88
+interface Vlanif88
+ ip address 192.168.88.21 255.255.255.0
+interface GigabitEthernet0/0/1
+ port link-type trunk
+ port trunk allow-pass vlan 88
+snmp-agent
+snmp-agent community read cipher Monitor@123
+snmp-agent sys-info version v2c
+snmp-agent target-host trap address udp-domain 192.168.88.10 params securityname Monitor@123 v2c
+save
+y
+
+# ---- CORE2 ----
+system-view
+sysname CORE2
+vlan 88
+interface Vlanif88
+ ip address 192.168.88.22 255.255.255.0
+interface GigabitEthernet0/0/1
+ port link-type trunk
+ port trunk allow-pass vlan 88
+snmp-agent
+snmp-agent community read cipher Monitor@123
+snmp-agent sys-info version v2c
+snmp-agent target-host trap address udp-domain 192.168.88.10 params securityname Monitor@123 v2c
+save
+y
+
+# ---- CORE3 ----
+system-view
+sysname CORE3
+vlan 88
+interface Vlanif88
+ ip address 192.168.88.23 255.255.255.0
+interface GigabitEthernet0/0/1
+ port link-type trunk
+ port trunk allow-pass vlan 88
+snmp-agent
+snmp-agent community read cipher Monitor@123
+snmp-agent sys-info version v2c
+snmp-agent target-host trap address udp-domain 192.168.88.10 params securityname Monitor@123 v2c
+save
+y
+
+# ---- CORE4 ----
+system-view
+sysname CORE4
+vlan 88
+interface Vlanif88
+ ip address 192.168.88.24 255.255.255.0
+interface GigabitEthernet0/0/1
+ port link-type trunk
+ port trunk allow-pass vlan 88
+snmp-agent
+snmp-agent community read cipher Monitor@123
+snmp-agent sys-info version v2c
+snmp-agent target-host trap address udp-domain 192.168.88.10 params securityname Monitor@123 v2c
+save
+y
+
+# ---- HEAD_EXPORT_SW ----
+system-view
+sysname HEAD_EXPORT_SW
+vlan 88
+interface Vlanif88
+ ip address 192.168.88.25 255.255.255.0
+interface GigabitEthernet0/0/1
+ port link-type trunk
+ port trunk allow-pass vlan 88
+snmp-agent
+snmp-agent community read cipher Monitor@123
+snmp-agent sys-info version v2c
+snmp-agent target-host trap address udp-domain 192.168.88.10 params securityname Monitor@123 v2c
+save
+y
+
+# ---- HEAD_SERVER_SW ----
+system-view
+sysname HEAD_SERVER_SW
+vlan 88
+interface Vlanif88
+ ip address 192.168.88.26 255.255.255.0
+interface GigabitEthernet0/0/1
+ port link-type trunk
+ port trunk allow-pass vlan 88
+snmp-agent
+snmp-agent community read cipher Monitor@123
+snmp-agent sys-info version v2c
+snmp-agent target-host trap address udp-domain 192.168.88.10 params securityname Monitor@123 v2c
+save
+y
+
+
+# ==================== 总部 · 汇聚 ====================
+# ---- AGG1 ----
+system-view
+sysname AGG1
+vlan 88
+interface Vlanif88
+ ip address 192.168.88.31 255.255.255.0
+interface GigabitEthernet0/0/1
+ port link-type trunk
+ port trunk allow-pass vlan 88
+snmp-agent
+snmp-agent community read cipher Monitor@123
+snmp-agent sys-info version v2c
+snmp-agent target-host trap address udp-domain 192.168.88.10 params securityname Monitor@123 v2c
+save
+y
+
+# ---- AGG2 ----
+system-view
+sysname AGG2
+vlan 88
+interface Vlanif88
+ ip address 192.168.88.32 255.255.255.0
+interface GigabitEthernet0/0/1
+ port link-type trunk
+ port trunk allow-pass vlan 88
+snmp-agent
+snmp-agent community read cipher Monitor@123
+snmp-agent sys-info version v2c
+snmp-agent target-host trap address udp-domain 192.168.88.10 params securityname Monitor@123 v2c
+save
+y
+
+# ---- AGG3 ----
+system-view
+sysname AGG3
+vlan 88
+interface Vlanif88
+ ip address 192.168.88.33 255.255.255.0
+interface GigabitEthernet0/0/1
+ port link-type trunk
+ port trunk allow-pass vlan 88
+snmp-agent
+snmp-agent community read cipher Monitor@123
+snmp-agent sys-info version v2c
+snmp-agent target-host trap address udp-domain 192.168.88.10 params securityname Monitor@123 v2c
+save
+y
+
+# ---- AGG4 ----
+system-view
+sysname AGG4
+vlan 88
+interface Vlanif88
+ ip address 192.168.88.34 255.255.255.0
+interface GigabitEthernet0/0/1
+ port link-type trunk
+ port trunk allow-pass vlan 88
+snmp-agent
+snmp-agent community read cipher Monitor@123
+snmp-agent sys-info version v2c
+snmp-agent target-host trap address udp-domain 192.168.88.10 params securityname Monitor@123 v2c
+save
+y
+
+
+# ==================== 总部 · 接入 ====================
+# ---- ACC1 ----
+system-view
+sysname ACC1
+vlan 88
+interface Vlanif88
+ ip address 192.168.88.41 255.255.255.0
+interface GigabitEthernet0/0/1
+ port link-type trunk
+ port trunk allow-pass vlan 88
+snmp-agent
+snmp-agent community read cipher Monitor@123
+snmp-agent sys-info version v2c
+snmp-agent target-host trap address udp-domain 192.168.88.10 params securityname Monitor@123 v2c
+save
+y
+
+# ---- ACC2 ----
+system-view
+sysname ACC2
+vlan 88
+interface Vlanif88
+ ip address 192.168.88.42 255.255.255.0
+interface GigabitEthernet0/0/1
+ port link-type trunk
+ port trunk allow-pass vlan 88
+snmp-agent
+snmp-agent community read cipher Monitor@123
+snmp-agent sys-info version v2c
+snmp-agent target-host trap address udp-domain 192.168.88.10 params securityname Monitor@123 v2c
+save
+y
+
+# ---- ACC3 ----
+system-view
+sysname ACC3
+vlan 88
+interface Vlanif88
+ ip address 192.168.88.43 255.255.255.0
+interface GigabitEthernet0/0/1
+ port link-type trunk
+ port trunk allow-pass vlan 88
+snmp-agent
+snmp-agent community read cipher Monitor@123
+snmp-agent sys-info version v2c
+snmp-agent target-host trap address udp-domain 192.168.88.10 params securityname Monitor@123 v2c
+save
+y
+
+# ---- ACC4 ----
+system-view
+sysname ACC4
+vlan 88
+interface Vlanif88
+ ip address 192.168.88.44 255.255.255.0
+interface GigabitEthernet0/0/1
+ port link-type trunk
+ port trunk allow-pass vlan 88
+snmp-agent
+snmp-agent community read cipher Monitor@123
+snmp-agent sys-info version v2c
+snmp-agent target-host trap address udp-domain 192.168.88.10 params securityname Monitor@123 v2c
+save
+y
+
+# ---- ACC5 ----
+system-view
+sysname ACC5
+vlan 88
+interface Vlanif88
+ ip address 192.168.88.45 255.255.255.0
+interface GigabitEthernet0/0/1
+ port link-type trunk
+ port trunk allow-pass vlan 88
+snmp-agent
+snmp-agent community read cipher Monitor@123
+snmp-agent sys-info version v2c
+snmp-agent target-host trap address udp-domain 192.168.88.10 params securityname Monitor@123 v2c
+save
+y
+
+# ---- ACC6 ----
+system-view
+sysname ACC6
+vlan 88
+interface Vlanif88
+ ip address 192.168.88.46 255.255.255.0
+interface GigabitEthernet0/0/1
+ port link-type trunk
+ port trunk allow-pass vlan 88
+snmp-agent
+snmp-agent community read cipher Monitor@123
+snmp-agent sys-info version v2c
+snmp-agent target-host trap address udp-domain 192.168.88.10 params securityname Monitor@123 v2c
+save
+y
+
+# ---- ACC7 ----
+system-view
+sysname ACC7
+vlan 88
+interface Vlanif88
+ ip address 192.168.88.47 255.255.255.0
+interface GigabitEthernet0/0/1
+ port link-type trunk
+ port trunk allow-pass vlan 88
+snmp-agent
+snmp-agent community read cipher Monitor@123
+snmp-agent sys-info version v2c
+snmp-agent target-host trap address udp-domain 192.168.88.10 params securityname Monitor@123 v2c
+save
+y
+
+# ---- ACC8 ----
+system-view
+sysname ACC8
+vlan 88
+interface Vlanif88
+ ip address 192.168.88.48 255.255.255.0
+interface GigabitEthernet0/0/1
+ port link-type trunk
+ port trunk allow-pass vlan 88
+snmp-agent
+snmp-agent community read cipher Monitor@123
+snmp-agent sys-info version v2c
+snmp-agent target-host trap address udp-domain 192.168.88.10 params securityname Monitor@123 v2c
+save
+y
+
+
+# ==================== 分部 ====================
+# ---- DIVI_CORE1 ----
+system-view
+sysname DIVI_CORE1
+vlan 88
+interface Vlanif88
+ ip address 192.168.88.61 255.255.255.0
+interface GigabitEthernet0/0/1
+ port link-type trunk
+ port trunk allow-pass vlan 88
+snmp-agent
+snmp-agent community read cipher Monitor@123
+snmp-agent sys-info version v2c
+snmp-agent target-host trap address udp-domain 192.168.88.10 params securityname Monitor@123 v2c
+save
+y
+
+# ---- DIVI_CORE2 ----
+system-view
+sysname DIVI_CORE2
+vlan 88
+interface Vlanif88
+ ip address 192.168.88.62 255.255.255.0
+interface GigabitEthernet0/0/1
+ port link-type trunk
+ port trunk allow-pass vlan 88
+snmp-agent
+snmp-agent community read cipher Monitor@123
+snmp-agent sys-info version v2c
+snmp-agent target-host trap address udp-domain 192.168.88.10 params securityname Monitor@123 v2c
+save
+y
+
+# ---- DIVI_ACC1 ----
+system-view
+sysname DIVI_ACC1
+vlan 88
+interface Vlanif88
+ ip address 192.168.88.63 255.255.255.0
+interface GigabitEthernet0/0/1
+ port link-type trunk
+ port trunk allow-pass vlan 88
+snmp-agent
+snmp-agent community read cipher Monitor@123
+snmp-agent sys-info version v2c
+snmp-agent target-host trap address udp-domain 192.168.88.10 params securityname Monitor@123 v2c
+save
+y
+
+# ---- DIVI_ACC2 ----
+system-view
+sysname DIVI_ACC2
+vlan 88
+interface Vlanif88
+ ip address 192.168.88.64 255.255.255.0
+interface GigabitEthernet0/0/1
+ port link-type trunk
+ port trunk allow-pass vlan 88
+snmp-agent
+snmp-agent community read cipher Monitor@123
+snmp-agent sys-info version v2c
+snmp-agent target-host trap address udp-domain 192.168.88.10 params securityname Monitor@123 v2c
+save
+y
+
+# ---- DIVI_EXPORT_SW ----
+system-view
+sysname DIVI_EXPORT_SW
+vlan 88
+interface Vlanif88
+ ip address 192.168.88.65 255.255.255.0
+interface GigabitEthernet0/0/1
+ port link-type trunk
+ port trunk allow-pass vlan 88
+snmp-agent
+snmp-agent community read cipher Monitor@123
+snmp-agent sys-info version v2c
+snmp-agent target-host trap address udp-domain 192.168.88.10 params securityname Monitor@123 v2c
+save
+y
+
+# ---- DIVI_SERVER_SW ----
+system-view
+sysname DIVI_SERVER_SW
+vlan 88
+interface Vlanif88
+ ip address 192.168.88.66 255.255.255.0
+interface GigabitEthernet0/0/1
+ port link-type trunk
+ port trunk allow-pass vlan 88
+snmp-agent
+snmp-agent community read cipher Monitor@123
+snmp-agent sys-info version v2c
+snmp-agent target-host trap address udp-domain 192.168.88.10 params securityname Monitor@123 v2c
+save
+y
+
+
+# ==================== 分支机构 / 用户接入 / NOC ====================
+# ---- BR_SW1（管理地址走分支网段 192.168.210.0/24，网关 BR_CORE1）----
+system-view
+sysname BR_SW1
+vlan 88
+interface Vlanif88
+ ip address 192.168.210.10 255.255.255.0
+interface GigabitEthernet0/0/1
+ port link-type trunk
+ port trunk allow-pass vlan 88
+ip route-static 0.0.0.0 0.0.0.0 192.168.210.1
+snmp-agent
+snmp-agent community read cipher Monitor@123
+snmp-agent sys-info version v2c
+snmp-agent target-host trap address udp-domain 192.168.88.10 params securityname Monitor@123 v2c
+save
+y
+
+# ---- Client_SW（用户接入，管理地址走 200.147.50.0/24，网关 METRO_A1 GE0/0/3）----
+system-view
+sysname Client_SW
+vlan 88
+interface Vlanif88
+ ip address 200.147.50.254 255.255.255.0
+interface GigabitEthernet0/0/1
+ port link-type trunk
+ port trunk allow-pass vlan 88
+ip route-static 0.0.0.0 0.0.0.0 200.147.50.1
+snmp-agent
+snmp-agent community read cipher Monitor@123
+snmp-agent sys-info version v2c
+snmp-agent target-host trap address udp-domain 192.168.88.10 params securityname Monitor@123 v2c
+save
+y
+
+# ---- NOC_SW1（可选，NOC 网段 192.168.254.0/24）----
+system-view
+sysname NOC_SW1
+vlan 88
+interface Vlanif88
+ ip address 192.168.254.10 255.255.255.0
+interface GigabitEthernet0/0/1
+ port link-type trunk
+ port trunk allow-pass vlan 88
+snmp-agent
+snmp-agent community read cipher Monitor@123
+snmp-agent sys-info version v2c
+snmp-agent target-host trap address udp-domain 192.168.88.10 params securityname Monitor@123 v2c
+save
+y
+
+
+# ==================== 补充：OOB管理交换机 / 无线AC / 外部路由 ====================
+# ---- LSW25（OOB 管理交换机：汇聚各防火墙 GE0/0/0 带外口 + Cloud1 桥接监控主机）----
+system-view
+sysname LSW25
+vlan 88
+interface Vlanif88
+ ip address 192.168.88.9 255.255.255.0
+# 接各防火墙 GE0/0/0 的口放行 VLAN 88（按实际接口改，默认 GE0/0/1 示例）：
+interface GigabitEthernet0/0/1
+ port link-type trunk
+ port trunk allow-pass vlan 88
+# 接 Cloud1（监控主机）的口同样放行 VLAN 88
+snmp-agent
+snmp-agent community read cipher Monitor@123
+snmp-agent sys-info version v2c
+snmp-agent target-host trap address udp-domain 192.168.88.10 params securityname Monitor@123 v2c
+save
+y
+
+# ---- HEAD_AC2（总部无线 AC 备，VLAN 101）----
+system-view
+sysname HEAD_AC2
+vlan 101
+interface Vlanif101
+ ip address 192.168.101.2 255.255.255.0
+snmp-agent
+snmp-agent community read cipher Monitor@123
+snmp-agent sys-info version v2c
+snmp-agent target-host trap address udp-domain 192.168.88.10 params securityname Monitor@123 v2c
+save
+y
+
+# ---- AC2（分部无线 AC，AC6005，接 DIVI_CORE2；管理 VLAN 88，IP 待确认）----
+system-view
+sysname AC2
+vlan 88
+interface Vlanif88
+ ip address 192.168.88.67 255.255.255.0
+snmp-agent
+snmp-agent community read cipher Monitor@123
+snmp-agent sys-info version v2c
+snmp-agent target-host trap address udp-domain 192.168.88.10 params securityname Monitor@123 v2c
+save
+y
+
+# ---- HOME_AR（外部家庭接入路由器，接 ISP4/Cloud2；Loopback0 用于 SNMP 轮询）----
+# 注意：需另配到监控主机的路由（IS-IS 或静态）后监控才能直达
+system-view
+sysname HOME_AR
+interface LoopBack0
+ ip address 192.168.255.30 255.255.255.255
+snmp-agent
+snmp-agent community read cipher Monitor@123
+snmp-agent sys-info version v2c
+snmp-agent target-host trap address udp-domain 192.168.88.10 params securityname Monitor@123 v2c
+save
+y
+
+
+# ============================================================
+# 全部贴完后，在监控主机上逐台验证：
+#   ping 192.168.88.21
+#   snmpwalk -v2c -c Monitor@123 192.168.88.21 1.3.6.1.2.1.1.3.0
+# devices.yaml 已启用全部设备（含 NOC_SW1/HEAD_AC2/LSW25/HOME_AR/AC2）。
+# ============================================================

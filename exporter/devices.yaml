@@ -1,0 +1,92 @@
+# ============================================================
+# eNSP 企业网设备清单 —— 按监控域分组 + 分层轮询
+# community 必须与设备端 `snmp-agent community read cipher xxx` 一致
+# 设备端开启 SNMP 的命令见 ../ensp_config/设备SNMP开启配置.txt
+#
+# tier 分层（企业实践：汇聚以上高频轮询，接入层低频 + Trap 为主）：
+#   core   = 核心/骨干/防火墙/关键服务  → Prometheus 30s 轮询
+#   agg    = 汇聚/出口/服务器区交换机    → Prometheus 60s 轮询
+#   access = 接入交换机                 → Prometheus 120s 轮询（Trap 为主）
+#
+# 注意：交换机在 eNSP 里贴完配置并 save 之前会显示"离线"，属正常现象
+# ============================================================
+community: "Monitor@123"
+snmp_port: 161
+snmp_timeout: 2.0      # 单台设备 SNMP 超时（秒）
+snmp_retries: 1
+max_workers: 16        # 并发轮询线程数
+
+groups:
+  # ---------------- 运营商骨干网 ----------------
+  # IS-IS 100 + MPLS LDP + MP-BGP VPNv4 (AS 65000)，路由器轮询 Loopback0
+  backbone:
+    label: "运营商骨干网"
+    devices:
+      - { name: BACKBONE1, ip: 192.168.255.1,  type: router, tier: core, role: "RR" }
+      - { name: BACKBONE2, ip: 192.168.255.2,  type: router, tier: core, role: "RR" }
+      - { name: BACKBONE3, ip: 192.168.255.3,  type: router, tier: core, role: "P" }
+      - { name: BACKBONE4, ip: 192.168.255.4,  type: router, tier: core, role: "P" }
+      - { name: BACKBONE5, ip: 192.168.255.5,  type: router, tier: core, role: "P" }
+      - { name: ISP1,      ip: 192.168.255.11, type: router, tier: core, role: "PE-总部" }
+      - { name: ISP2,      ip: 192.168.255.12, type: router, tier: core, role: "PE-NOC" }
+      - { name: ISP3,      ip: 192.168.255.13, type: router, tier: core, role: "PE-分部" }
+      - { name: ISP4,      ip: 192.168.255.14, type: router, tier: core, role: "PE-NOC" }
+      - { name: METRO_A1,  ip: 192.168.255.21, type: router, tier: core, role: "PE-用户接入" }
+      - { name: METRO_A2,  ip: 192.168.255.22, type: router, tier: core, role: "P" }
+      - { name: METRO_B1,  ip: 192.168.255.23, type: router, tier: core, role: "P" }
+      - { name: METRO_B2,  ip: 192.168.255.24, type: router, tier: core, role: "P" }
+      # 用户接入交换机（挂 METRO_A1 GE0/0/3，VLAN 50）——接入层，低频 + Trap
+      - { name: Client_SW, ip: 200.147.50.254, type: switch, tier: access, role: "用户接入" }
+      # NOC 网管交换机（192.168.254.0/24 段）
+      - { name: NOC_SW1,   ip: 192.168.254.10, type: switch, tier: access, role: "NOC网管" }
+      # 外部家庭接入路由器（接 ISP4，经 Cloud2 出互联网；Loopback0=192.168.255.30 待配）
+      - { name: HOME_AR,   ip: 192.168.255.30, type: router, tier: core, role: "外部家庭接入" }
+
+  # ---------------- 企业总部 ----------------
+  # 防火墙走 GE0/0/0 带外管理口（192.168.88.0/24）
+  hq:
+    label: "企业总部"
+    devices:
+      - { name: HEAD_FW1,  ip: 192.168.88.11,  type: firewall, tier: core, role: "边界FW-主(VRRP)" }
+      - { name: HEAD_FW2,  ip: 192.168.88.12,  type: firewall, tier: core, role: "边界FW-备(VRRP)" }
+      - { name: SERVER_FW, ip: 192.168.88.14,  type: firewall, tier: core, role: "服务器区FW" }
+      - { name: HEAD_AC1,  ip: 192.168.101.1,  type: ac,       tier: core, role: "无线AC" }
+      - { name: DHCP,      ip: 192.168.201.1,  type: router,   tier: core, role: "DHCP服务器" }
+      - { name: HEAD_AC2,  ip: 192.168.101.2,  type: ac,       tier: core, role: "无线AC-备" }
+      - { name: LSW25,     ip: 192.168.88.9,   type: switch,   tier: core, role: "OOB管理交换机" }
+      #
+      # ---- 总部核心/汇聚/接入交换机（管理 VLAN 88，逐台粘贴配置见 ../ensp_config/）----
+      - { name: CORE1,          ip: 192.168.88.21,  type: switch, tier: core,   role: "核心" }
+      - { name: CORE2,          ip: 192.168.88.22,  type: switch, tier: core,   role: "核心" }
+      - { name: CORE3,          ip: 192.168.88.23,  type: switch, tier: core,   role: "核心" }
+      - { name: CORE4,          ip: 192.168.88.24,  type: switch, tier: core,   role: "核心" }
+      - { name: HEAD_EXPORT_SW, ip: 192.168.88.25,  type: switch, tier: agg,    role: "出口" }
+      - { name: HEAD_SERVER_SW, ip: 192.168.88.26,  type: switch, tier: agg,    role: "服务器区" }
+      - { name: AGG1,           ip: 192.168.88.31,  type: switch, tier: agg,    role: "汇聚" }
+      - { name: AGG2,           ip: 192.168.88.32,  type: switch, tier: agg,    role: "汇聚" }
+      - { name: AGG3,           ip: 192.168.88.33,  type: switch, tier: agg,    role: "汇聚" }
+      - { name: AGG4,           ip: 192.168.88.34,  type: switch, tier: agg,    role: "汇聚" }
+      - { name: ACC1,           ip: 192.168.88.41,  type: switch, tier: access, role: "接入" }
+      - { name: ACC2,           ip: 192.168.88.42,  type: switch, tier: access, role: "接入" }
+      - { name: ACC3,           ip: 192.168.88.43,  type: switch, tier: access, role: "接入" }
+      - { name: ACC4,           ip: 192.168.88.44,  type: switch, tier: access, role: "接入" }
+      - { name: ACC5,           ip: 192.168.88.45,  type: switch, tier: access, role: "接入" }
+      - { name: ACC6,           ip: 192.168.88.46,  type: switch, tier: access, role: "接入" }
+      - { name: ACC7,           ip: 192.168.88.47,  type: switch, tier: access, role: "接入" }
+      - { name: ACC8,           ip: 192.168.88.48,  type: switch, tier: access, role: "接入" }
+
+  # ---------------- 分部 + 分支机构 ----------------
+  divi:
+    label: "分部/分支"
+    devices:
+      - { name: DIVI_FW,        ip: 192.168.88.13,  type: firewall, tier: core,   role: "分部FW" }
+      - { name: BR_CORE1,       ip: 200.147.30.2,   type: router,   tier: core,   role: "分支核心" }
+      - { name: BR_CORE2,       ip: 192.168.210.2,  type: router,   tier: core,   role: "分支核心" }
+      - { name: DIVI_CORE1,     ip: 192.168.88.61,  type: switch,   tier: core,   role: "分部核心" }
+      - { name: DIVI_CORE2,     ip: 192.168.88.62,  type: switch,   tier: core,   role: "分部核心" }
+      - { name: DIVI_EXPORT_SW, ip: 192.168.88.65,  type: switch,   tier: agg,    role: "分部出口" }
+      - { name: DIVI_SERVER_SW, ip: 192.168.88.66,  type: switch,   tier: agg,    role: "分部服务器区" }
+      - { name: DIVI_ACC1,      ip: 192.168.88.63,  type: switch,   tier: access, role: "分部接入" }
+      - { name: DIVI_ACC2,      ip: 192.168.88.64,  type: switch,   tier: access, role: "分部接入" }
+      - { name: BR_SW1,         ip: 192.168.210.10, type: switch,   tier: access, role: "分支接入" }
+      - { name: AC2,            ip: 192.168.88.67,  type: ac,       tier: core,   role: "分部无线AC" }

@@ -1,0 +1,59 @@
+# eNSP 云端 Prometheus 配置
+# 数据全部来自本机 SSH 反向隧道：
+#   本机执行  ssh -N -R 9116:localhost:9116 -R 9117:localhost:9117 ubuntu@<云IP>
+# 隧道把本机 exporter(:9116) 和 trap-receiver(:9117) 映射到云端 127.0.0.1
+# job 名、tier 标签与原配置完全一致 —— Grafana 仪表盘 PromQL 无需任何修改
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+  external_labels:
+    project: ensp-enterprise-topo
+    site: local-ensp          # 标记数据经隧道来自本地机房
+
+scrape_configs:
+  # ---------- 核心层：30s ----------
+  - job_name: ensp-core
+    scrape_interval: 30s
+    scrape_timeout: 25s
+    metrics_path: /probe
+    params:
+      tier: ['core']
+    static_configs:
+      - targets: ['localhost:9116']
+        labels:
+          tier: core
+
+  # ---------- 汇聚层：60s ----------
+  - job_name: ensp-agg
+    scrape_interval: 60s
+    scrape_timeout: 25s
+    metrics_path: /probe
+    params:
+      tier: ['agg']
+    static_configs:
+      - targets: ['localhost:9116']
+        labels:
+          tier: agg
+
+  # ---------- 接入层：120s ----------
+  - job_name: ensp-access
+    scrape_interval: 120s
+    scrape_timeout: 30s
+    metrics_path: /probe
+    params:
+      tier: ['access']
+    static_configs:
+      - targets: ['localhost:9116']
+        labels:
+          tier: access
+
+  # ---------- Trap 接收器（本机 ：9117 经隧道过来）----------
+  - job_name: ensp-traps
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['localhost:9117']
+
+  # ---------- Prometheus 自监控 ----------
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']

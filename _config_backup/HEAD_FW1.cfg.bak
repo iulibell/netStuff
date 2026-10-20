@@ -1,0 +1,331 @@
+
+!Software Version V500R005C10SPC300
+!Last configuration was saved at 2026-09-27 10:52:10 UTC
+#
+sysname HEAD_fW1
+#
+ l2tp domain suffix-separator @
+#
+ ipsec sha2 compatible enable 
+#
+undo telnet server enable
+undo telnet ipv6 server enable
+#
+ update schedule location-sdb weekly Sun 23:08
+#
+ firewall defend action discard
+#
+ banner enable
+#
+ user-manage web-authentication security port 8887
+ undo privacy-statement english
+ undo privacy-statement chinese
+page-setting
+ user-manage security version tlsv1.1 tlsv1.2
+password-policy
+ level high
+user-manage single-sign-on ad
+user-manage single-sign-on tsm
+user-manage single-sign-on radius
+user-manage auto-sync online-user
+#
+ web-manager security version tlsv1.1 tlsv1.2
+ web-manager enable
+ web-manager security enable
+ undo web-manager config-guide enable
+#
+firewall dataplane to manageplane application-apperceive default-action drop
+#
+ undo ips log merge enable
+#
+ decoding uri-cache disable
+#
+ update schedule ips-sdb daily 22:20
+ update schedule av-sdb daily 22:20
+ update schedule sa-sdb daily 22:20
+ update schedule cnc daily 22:20
+ update schedule file-reputation daily 22:20
+#
+ip vpn-instance default
+ ipv4-family
+#
+ip address-set HEAD_IP_SOURCE type group
+ address 0 192.168.10.0 mask 24
+ address 1 192.168.20.0 mask 24
+ address 2 192.168.30.0 mask 24
+ address 3 192.168.40.0 mask 24
+ address 4 192.168.50.0 mask 24
+ address 5 192.168.60.0 mask 24
+ address 6 192.168.70.0 mask 24
+ address 7 192.168.80.0 mask 24
+ address 8 192.168.100.0 mask 24
+ address 9 192.168.101.0 mask 24
+ address 10 192.168.102.0 mask 24
+ address 11 192.168.201.0 mask 24
+#
+ip address-set DIVI_IP_SOURCE type group
+ address 0 192.168.90.0 mask 24
+ address 1 192.168.100.0 mask 24
+ address 2 192.168.151.0 mask 24
+ address 3 192.168.152.0 mask 24
+ address 4 192.168.153.0 mask 24
+ address 5 192.168.110.0 mask 24
+#
+ time-range worktime
+  period-range 08:00:00 to 18:00:00 working-day   
+#
+acl number 3000
+ rule 5 permit ip source address-set HEAD_IP_SOURCE destination address-set DIVI_IP_SOURCE 
+ rule 10 permit ip source 192.168.0.1 0 destination 192.168.0.2 0 
+#
+ipsec proposal prop2792544443
+ encapsulation-mode auto
+ esp authentication-algorithm sha2-256 
+ esp encryption-algorithm aes-256 
+#
+ike proposal default
+ encryption-algorithm aes-256 aes-192 aes-128 
+ dh group14 
+ authentication-algorithm sha2-512 sha2-384 sha2-256 
+ authentication-method pre-share
+ integrity-algorithm hmac-sha2-256 
+ prf hmac-sha2-256 
+ike proposal 1
+ encryption-algorithm aes-256 
+ dh group14 
+ authentication-algorithm sha2-256 
+ authentication-method pre-share
+ integrity-algorithm hmac-sha2-256 
+ prf hmac-sha2-256 
+#
+ike peer ike2792544443
+ exchange-mode auto
+ pre-shared-key %^%#J(#~OhLUK,w"S:YFtNQ7|HsDE>4E7Ed3S/=E3W{;%^%#
+ ike-proposal 1
+ remote-id-type none
+ dpd type periodic
+ remote-address 200.147.10.2 
+#
+ipsec policy ipsec2792544160 1 isakmp
+ security acl 3000
+ ike-peer ike2792544443
+ proposal prop2792544443
+ tunnel local 200.147.10.20
+ alias HEAD_TO_DIVI_IPSec 
+ sa trigger-mode auto
+ sa duration traffic-based 10485760
+ sa duration time-based 3600
+#
+aaa
+ authentication-scheme default
+ authentication-scheme admin_local
+ authentication-scheme admin_radius_local
+ authentication-scheme admin_hwtacacs_local
+ authentication-scheme admin_ad_local
+ authentication-scheme admin_ldap_local
+ authentication-scheme admin_radius
+ authentication-scheme admin_hwtacacs
+ authentication-scheme admin_ad
+ authorization-scheme default
+ accounting-scheme default
+ domain default
+  service-type internetaccess ssl-vpn l2tp ike
+  internet-access mode password
+  reference user current-domain
+ manager-user audit-admin 
+  password cipher @%@%7;JlK_<um650#@.V)YIH"25x'jypT1n9JCqkiY#RXT=U25{"@%@%
+  service-type web terminal 
+  level 15 
+
+ manager-user api-admin 
+  password cipher @%@%b]:5K'B)$>*+P)1zxB]I"NYivUZgQ5!Sl<oh/-+>2PV<NYl"@%@%
+  level 15 
+
+ manager-user admin 
+  password cipher @%@%qDC!Ag^'@)S[(m~7TYD<MB'/7,o,Q,TZU,vYm@4n"Q*"B'2M@%@%
+  service-type web terminal 
+  level 15 
+
+ role system-admin
+ role device-admin
+ role device-admin(monitor)
+ role audit-admin
+ bind manager-user audit-admin role audit-admin
+ bind manager-user admin role system-admin
+#
+l2tp-group default-lns
+#
+interface GigabitEthernet0/0/0
+ undo shutdown
+ ip binding vpn-instance default
+ ip address 192.168.88.11 255.255.255.0
+ alias GE0/METH
+ service-manage http permit
+ service-manage https permit
+ service-manage ping permit
+ service-manage ssh permit
+ service-manage snmp permit
+ service-manage telnet permit
+#
+interface GigabitEthernet1/0/0
+ undo shutdown
+#
+interface GigabitEthernet1/0/1
+ undo shutdown
+ ip address 192.168.102.3 255.255.255.0
+ ospf dr-priority 120
+ ospf timer hello 4
+ service-manage http permit
+ service-manage https permit
+ service-manage ping permit
+ service-manage ssh permit
+ service-manage snmp permit
+ service-manage telnet permit
+#
+interface GigabitEthernet1/0/2
+ undo shutdown
+ ip address 192.168.103.1 255.255.255.0
+ ospf dr-priority 130
+ ospf timer hello 4
+ service-manage http permit
+ service-manage https permit
+ service-manage ping permit
+ service-manage ssh permit
+ service-manage snmp permit
+ service-manage telnet permit
+#
+interface GigabitEthernet1/0/3
+ undo shutdown
+#
+interface GigabitEthernet1/0/4
+ undo shutdown
+#
+interface GigabitEthernet1/0/5
+ undo shutdown
+#
+interface GigabitEthernet1/0/6
+ undo shutdown
+ ip address 200.147.10.18 255.255.255.248
+ vrrp vrid 147 virtual-ip 200.147.10.20 active
+ service-manage ping permit
+ ipsec policy ipsec2792544160
+#
+interface Virtual-if0
+#
+interface NULL0
+#
+interface Tunnel0
+ ip address 192.168.0.1 255.255.255.0
+ tunnel-protocol gre
+ source 200.147.10.20
+ destination 200.147.10.2
+ alias HEAD_TO_DIVI_GRE
+ undo service-manage enable
+#
+firewall zone local
+ set priority 100
+#
+firewall zone trust
+ set priority 85
+ add interface GigabitEthernet0/0/0
+ add interface GigabitEthernet1/0/1
+ add interface GigabitEthernet1/0/2
+ add interface Tunnel0
+#
+firewall zone untrust
+ set priority 5
+ add interface GigabitEthernet1/0/6
+#
+firewall zone dmz
+ set priority 50
+#
+ospf 1 router-id 7.7.7.7
+ area 0.0.0.0
+  authentication-mode simple plain 123456
+  network 192.168.88.0 0.0.0.255
+  network 192.168.102.0 0.0.0.255
+  network 192.168.103.0 0.0.0.255
+#
+ip route-static 0.0.0.0 0.0.0.0 200.147.10.17
+#
+undo ssh server compatible-ssh1x enable
+ssh authentication-type default password
+ssh server cipher aes256_ctr aes128_ctr
+ssh server hmac sha2_256 sha1
+ssh client cipher aes256_ctr aes128_ctr
+ssh client hmac sha2_256 sha1
+#
+firewall detect ftp
+#
+user-interface con 0
+ authentication-mode aaa
+user-interface vty 0 4
+ authentication-mode aaa
+ protocol inbound ssh
+user-interface vty 16 20
+#
+pki realm default
+#
+sa
+#
+location
+#
+nat address-group HEAD_TO_DIVI 0
+ mode pat
+ section 0 200.147.10.17 200.147.10.17
+ section 1 200.147.10.18 200.147.10.18
+ section 2 200.147.10.19 200.147.10.19
+ section 3 200.147.10.20 200.147.10.20
+ section 4 200.147.10.21 200.147.10.21
+#
+multi-linkif
+ mode proportion-of-weight
+#
+right-manager server-group
+#
+device-classification
+ device-group pc
+ device-group mobile-terminal
+ device-group undefined-group
+#
+user-manage server-sync tsm
+#
+security-policy
+ rule name local_to_untrust
+  source-zone local
+  destination-zone untrust
+  action permit
+ rule name untrust_to_local
+  source-zone untrust
+  destination-zone local
+  action permit
+ rule name local_to_trust
+  source-zone local
+  destination-zone trust
+  action permit
+ rule name trust_to_local
+  source-zone trust
+  destination-zone local
+  action permit
+#
+auth-policy
+#
+traffic-policy
+#
+policy-based-route
+#
+nat-policy
+ rule name HEAD_TO_DIVI_NAT
+  source-zone trust
+  destination-zone untrust
+  action source-nat address-group HEAD_TO_DIVI
+#
+quota-policy
+#
+pcp-policy
+#
+dns-transparent-policy
+#
+rightm-policy
+#
+return  

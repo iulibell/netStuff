@@ -1,0 +1,85 @@
+# ============================================================
+# 华为 eNSP 设备端 SNMP 开启命令（SNMPv2c，监控主机可达即可）
+# 请逐台设备登录执行，或在每台设备的 CLI 中统一下发。
+# community 必须与 exporter/devices.yaml 中的 community 一致！
+# ============================================================
+
+# 1) SNMP 基础（读团体字、版本、只读权限）
+snmp-agent community read cipher Monitor@123
+snmp-agent sys-info version v2c
+
+# 2) 如设备已有老配置，建议先 undo 掉避免冲突
+# undo snmp-agent community read cipher xxx
+
+# 3) 可选：限制监控主机源地址（安全加固）
+# acl number 2000
+#  rule 5 permit source 192.168.88.0 0.0.0.255
+# snmp-agent community read cipher Monitor@123 acl 2000
+
+# 4) 确认设备路由可达监控主机
+# 骨干网设备 Loopback0 (192.168.255.x) 已跑 IS-IS 100，只要 IS-IS 通告到
+#   监控主机所在网段（如 192.168.88.0/24 或 Docker 宿主机网段），即可直接轮询。
+# 防火墙/AC/交换机如无到监控主机的路由，需补充静态路由。
+
+# --- 总部防火墙示例（HEAD_FW1 / HEAD_FW2 / SERVER_FW）---
+# 管理口 GE0/0/0 已配 192.168.88.x/24，与监控主机同网段则无需额外路由。
+# 若监控主机在异网段，需加：
+# ip route-static 0.0.0.0 0.0.0.0 192.168.88.1
+
+# --- 分部防火墙示例（DIVI_FW）---
+# ip route-static 0.0.0.0 0.0.0.0 192.168.88.1
+
+# --- AC 示例（HEAD_AC1）---
+# interface Vlanif101
+#  ip address 192.168.101.1 255.255.255.0
+# ip route-static 0.0.0.0 0.0.0.0 192.168.101.254
+
+# ============================================================
+# 6) 交换机（S5700：CORE/AGG/ACC/EXPORT_SW 等）管理地址配置
+#    现状：这些交换机 flash.efz 为空（从未 save），无管理 IP，
+#    需要按下述方案配置后才能纳入 SNMP 监控。
+#    规划：全网交换机统一使用管理 VLAN 88，VLANIF88 落在 192.168.88.0/24，
+#    与防火墙 GE0/0/0 带外管理口同网段，监控主机直达。
+#    地址规划见 exporter/devices.yaml 中被注释的交换机条目。
+# ============================================================
+# 每台交换机执行（以 CORE1 为例，IP 按 devices.yaml 规划替换）：
+system-view
+sysname CORE1
+vlan 88
+ quit
+interface Vlanif88
+ ip address 192.168.88.21 255.255.255.0
+ quit
+# 上联口放行管理 VLAN 88（按实际接口改）：
+interface GigabitEthernet0/0/1
+ port link-type trunk
+ port trunk allow-pass vlan 88
+ quit
+# 回指路由（管理网关在 HEAD_FW 侧，或由 CORE 间互联打通）：
+ip route-static 0.0.0.0 0.0.0.0 192.168.88.1
+# 开启 SNMP：
+snmp-agent
+snmp-agent community read cipher Monitor@123
+snmp-agent sys-info version v2c
+save
+ y
+
+# ============================================================
+# 7) 验证命令
+# ============================================================
+display snmp-agent sys-info version
+display snmp-agent community
+ping <监控主机IP>
+
+# ============================================================
+# 8) Trap 主动上报（接入层"Trap 为主"模式的关键）
+# ------------------------------------------------------------
+# 批量脚本和交换机粘贴脚本已统一写入以下命令（目标 192.168.88.10
+# 为监控主机示例 IP，请按实际修改）：
+#   snmp-agent target-host trap address udp-domain 192.168.88.10 params securityname Monitor@123 v2c
+#
+# 验证：
+display snmp-agent target-host          # 应能看到 192.168.88.10:162
+# 触发测试 Trap：随便 shutdown 一个空闲端口再 undo shutdown，
+# 然后到 Trap 接收器看 http://<监控主机IP>:9117/traps
+# ============================================================

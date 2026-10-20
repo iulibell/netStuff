@@ -1,0 +1,58 @@
+# ============================================================
+# eNSP ↔ Docker 监控主机 网络互通说明
+# ============================================================
+
+核心问题：
+  eNSP 通过 Cloud 桥接到宿主机某张物理/虚拟网卡，Docker 容器在同一宿主机运行，
+  需确保容器能路由到 eNSP 设备的管理 IP。
+
+--- Linux 部署（推荐）---
+
+方案 A：宿主机直连 + 容器 host 网络模式
+  1. 在宿主机 Linux 上为 eNSP Cloud 网卡配置与 eNSP 设备同网段 IP。
+     例：eNSP Cloud 桥接 eth0，宿主机配 192.168.88.10/24，
+         与 HEAD_FW1 192.168.88.11 同网段。
+  2. docker-compose.yml 中将 ensp-exporter 改为：
+     services:
+       ensp-exporter:
+         network_mode: host
+  3. 这样容器直接使用宿主机网络栈，无需额外路由。
+
+方案 B：Docker bridge + 静态路由
+  1. 默认 Docker bridge 网段（如 172.20.0.0/16）与 eNSP 网段隔离。
+  2. 在宿主机上添加通往 eNSP 网段的路由：
+     ip route add 192.168.88.0/24 dev <eNSP-Cloud-bridge>
+     ip route add 192.168.255.0/24 dev <eNSP-Cloud-bridge>
+     ip route add 200.147.0.0/16 dev <eNSP-Cloud-bridge>
+  3. 同时给 eNSP 设备加回指路由：
+     ip route-static 172.20.0.0 255.255.0.0 <宿主机在eNSP侧IP>
+  4. 防火墙上放通 SNMP (UDP 161) 和 ICMP。
+
+--- Windows + WSL2 Docker Desktop ---
+
+  Windows Docker Desktop (WSL2 backend) 的容器运行在 WSL2 VM 中，
+  与宿主机网卡隔离，最简洁的方式：
+
+  1. 在 Windows 宿主机上给 eNSP Cloud 网卡配 IP（如 192.168.88.10）。
+  2. 在 WSL2 中通过 host.docker.internal 访问 Windows 宿主机，
+     但反向（WSL2 → eNSP）需 Windows 侧做端口转发或路由。
+  3. 推荐：把整套监控栈直接部署在 eNSP 同网的 Linux VM 里（如 VMware/Ubuntu），
+     网络最干净，不需要 WSL2 的 NAT 穿透。
+
+--- 验证连通性步骤 ---
+
+  1. 宿主机 ping eNSP 设备管理 IP：
+     ping 192.168.88.11  (HEAD_FW1)
+     ping 192.168.255.1   (BACKBONE1 Loopback0)
+  2. 进入 ensp-exporter 容器：
+     docker exec -it ensp-exporter bash
+     apt-get update && apt-get install -y iputils-ping
+     ping 192.168.88.11
+     ping 192.168.255.1
+  3. SNMP 直接测试：
+     snmpwalk -v2c -c Monitor@123 192.168.88.11 1.3.6.1.2.1.1.3.0
+     snmpwalk -v2c -c Monitor@123 192.168.255.1 1.3.6.1.2.1.1.3.0
+  4. Exporter 端点测试：
+     curl http://localhost:9116/probe?group=backbone
+     curl http://localhost:9116/probe?group=hq
+     curl http://localhost:9116/probe?group=divi

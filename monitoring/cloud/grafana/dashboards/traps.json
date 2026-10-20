@@ -1,0 +1,75 @@
+{
+  "uid": "ensp-traps",
+  "title": "Trap 告警中心",
+  "tags": ["ensp", "traps"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "Trap 接收器",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 5, "w": 4, "x": 0, "y": 0 },
+      "targets": [ { "expr": "ensp_trap_receiver_up", "refId": "A" } ],
+      "fieldConfig": { "defaults": { "mappings": [ { "type": "value", "options": { "0": { "text": "异常", "color": "red" }, "1": { "text": "运行中", "color": "green" } } } ] }, "overrides": [] },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "value" }
+    },
+    {
+      "id": 2, "type": "stat", "title": "最近5分钟 Trap",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 5, "w": 5, "x": 4, "y": 0 },
+      "targets": [ { "expr": "sum(increase(ensp_trap_total[5m]))", "refId": "A" } ],
+      "fieldConfig": { "defaults": { "unit": "none", "decimals": 0 }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "area", "textMode": "value" }
+    },
+    {
+      "id": 3, "type": "stat", "title": "linkDown 总数",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 5, "w": 5, "x": 9, "y": 0 },
+      "targets": [ { "expr": "sum(ensp_trap_total{trap=\"linkDown\"})", "refId": "A" } ],
+      "fieldConfig": { "defaults": { "unit": "none", "decimals": 0, "color": { "mode": "fixed", "fixedColor": "red" } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "area", "textMode": "value" }
+    },
+    {
+      "id": 4, "type": "stat", "title": "linkUp 总数",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 5, "w": 5, "x": 14, "y": 0 },
+      "targets": [ { "expr": "sum(ensp_trap_total{trap=\"linkUp\"})", "refId": "A" } ],
+      "fieldConfig": { "defaults": { "unit": "none", "decimals": 0, "color": { "mode": "fixed", "fixedColor": "green" } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "area", "textMode": "value" }
+    },
+    {
+      "id": 5, "type": "stat", "title": "coldStart（设备重启）",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 5, "w": 5, "x": 19, "y": 0 },
+      "targets": [ { "expr": "sum(ensp_trap_total{trap=\"coldStart\"})", "refId": "A" } ],
+      "fieldConfig": { "defaults": { "unit": "none", "decimals": 0, "color": { "mode": "fixed", "fixedColor": "orange" } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "area", "textMode": "value" }
+    },
+    {
+      "id": 6, "type": "timeseries", "title": "Trap 速率（按设备 × 类型）",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 5 },
+      "targets": [
+        { "expr": "sum by (device, trap) (increase(ensp_trap_total[$__rate_interval]))", "legendFormat": "{{device}} / {{trap}}", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "none", "custom": { "drawStyle": "bars", "fillOpacity": 40, "stacking": { "mode": "normal" } } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "right" }, "tooltip": { "mode": "multi" } }
+    },
+    {
+      "id": 7, "type": "table", "title": "各设备最近一次 Trap（距今时长）",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 13 },
+      "targets": [
+        { "expr": "time() - ensp_last_trap_timestamp_seconds", "format": "table", "instant": true, "refId": "A" }
+      ],
+      "transformations": [
+        { "id": "organize", "options": { "excludeByName": { "Time": true, "__name__": true, "instance": true, "job": true }, "renameByName": { "Value": "距今秒数" } } }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s", "decimals": 0 }, "overrides": [ { "matcher": { "id": "byName", "options": "距今秒数" }, "properties": [ { "id": "unit", "value": "s" }, { "id": "decimals", "value": 0 } ] } ] },
+      "options": { "sortBy": [ { "displayName": "距今秒数", "desc": false } ] }
+    }
+  ]
+}

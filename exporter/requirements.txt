@@ -1,0 +1,12 @@
+# 适配 Python 3.12+（含 3.14）：用社区维护的 lextudio 分支（asyncio 重写，
+# 同步 hlapi 兼容层 + pyasyncore 补回 asyncore），无需再装 Python 3.11。
+# Python 3.11 及以下也可用旧版 pysnmp==4.4.12 + pyasn1==0.4.8。
+pysnmp-lextudio==5.0.35
+pyasn1>=0.4.8,!=0.5.0
+pysmi-lextudio>=1.0.4
+ply>=3.11
+pycryptodomex==3.20.0
+prometheus-client==0.20.0
+Flask==3.0.3
+# 6.0.1 无 Python 3.13/3.14 预编译包，本机编译易失败，用 6.0.2+
+PyYAML>=6.0.2

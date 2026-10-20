@@ -1,0 +1,63 @@
+# eNSP 企业网监控栈：Prometheus + Grafana + Python SNMP Exporter
+# 启动：docker compose up -d --build
+# Grafana: http://localhost:3000  (admin / admin123)
+# Prometheus: http://localhost:9090
+# Exporter:  http://localhost:9116
+services:
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: ensp-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=15d'
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: ensp-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/etc/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  ensp-exporter:
+    build: ./exporter
+    container_name: ensp-exporter
+    ports:
+      - "9116:9116"
+    # eNSP 设备 IP 在宿主机网卡上时，Linux 下可改用 network_mode: host 直达；
+    # Windows Docker Desktop 需在宿主机加通往 eNSP 网段的路由（见 ensp_config 目录说明）
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  # SNMP Trap 接收器：收设备主动上报的 linkDown/linkUp 等告警
+  # 设备端需指向本服务：snmp-agent target-host trap address udp-domain <IP> params securityname Monitor@123 v2c
+  trap-receiver:
+    build: ./exporter
+    command: ["python", "trap_receiver.py"]
+    container_name: ensp-trap-receiver
+    ports:
+      - "162:162/udp"     # Trap 监听
+      - "9117:9117"       # Prometheus 指标
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+volumes:
+  prometheus-data:
+  grafana-data:
